@@ -129,6 +129,12 @@ summary{font-weight:700;padding:10px 0;cursor:pointer;min-height:44px;display:fl
 <div id="hBars"></div>
 <p class="note">Added sugars = sugars from sugar, honey, syrups, jam, juice, cookies and chocolate; sugar inside whole fruit and milk is not counted. “Bee share of nutrients”: each nutrient is measured in breakfast goals, then we see what part comes from pollinators. Nutrition values are typical values per 100 g and are approximate.</p>
 </div>
+<div class="card">
+<h2>Healthiest breakfasts in the world</h2>
+<p class="rankline" id="hRankLine"></p>
+<div id="hRank"></div>
+<p class="note">Health score, 0 to 100: how close the breakfast gets to the goals for fibre, vitamin C, folate and protein (each capped at 100%), minus points for added sugars above the goal. The small number shows its bee share of nutrients.</p>
+</div>
 </div>
 </section>
 <section class="pick" aria-label="Foods">
@@ -183,6 +189,14 @@ $('swaps').addEventListener('click',e=>{const b=e.target.closest('.alt');if(!b)r
 $('legend').innerHTML=CL.map((c,i)=>`<span><i class="dot" style="background:${col(i)}"></i>${c[0]} ${Math.round(c[1]*100)}%</span>`).join('');
 function healthHTML(t){let met=0;const rows=GOALS.map(([n,k,u,g,kind])=>{const v=t[k],ok=kind==='min'?v>=g:v<=g;if(ok)met++;const pct=Math.min(100,v/(2*g)*100);
 return `<div class="hb2"><div class="t"><span>${n} <span class="${ok?'ok':'no'}">${ok?'✓ goal met':(kind==='min'?'below goal':'too much')}</span></span><b>${v.toFixed(k==='fol'?0:1)} ${u} · goal ${kind==='min'?'at least':'at most'} ${g} ${u}</b></div><div class="t" style="font-size:13px;color:var(--mut)"><span>${v>0?Math.round(t.bee[k]/v*100):0}% of it comes from pollinator foods</span></div><div class="track"><div class="fill ${ok?'':'bad'}" style="width:${pct}%"></div><div class="goal"></div></div></div>`}).join('');return{met,rows}}
+
+const hscore=b=>{const t=nut(b);const cov=['fib','vc','fol','pro'].reduce((s,k)=>s+Math.min(1,t[k]/GU[k]),0)/4*100;const pen=Math.max(0,(t.sug-7.5)/7.5)*25;const met=GOALS.filter(([n,k,u,g,kind])=>kind==='min'?t[k]>=g:t[k]<=g).length;return{score:Math.max(0,Math.min(100,cov-pen)),met}};
+function healthRank(e,s){const showMe=(cur<0||strict)&&s.W>0;
+let rows=P.map(([n,b],i)=>({name:n,...hscore(b),bn:stats(b).n,me:!showMe&&i===cur}));
+if(showMe)rows.push({name:strict?'Your plate, no bee foods':'Your breakfast',...hscore(e),bn:s.n,me:true});
+rows.sort((u,v)=>v.score-u.score);
+$('hRank').innerHTML=rows.map(x=>`<div class="rk ${x.me?'me':''}"><span class="nm">${x.name}</span><div class="tr"><div class="fl" style="width:${x.score}%"></div></div><span class="v">${Math.round(x.score)}</span></div><div style="font-size:12px;color:var(--mut);margin:-2px 0 4px 9.5em">${x.met} of 5 goals · ${Math.round(x.bn*100)}% of nutrients from pollinators</div>`).join('');
+const pos=rows.findIndex(x=>x.me)+1;$('hRankLine').textContent=pos?`${rows[pos-1].name}: #${pos} of ${rows.length} for health`:'Pick a breakfast or add foods to see where it ranks.'}
 function update(){
 document.querySelectorAll('.pre').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.i===cur));
 $('tW').setAttribute('aria-pressed',mode==='w');$('tP').setAttribute('aria-pressed',mode==='p');$('tN').setAttribute('aria-pressed',mode==='n');
@@ -212,7 +226,7 @@ $('list').innerHTML=items.length?items.sort((u,v)=>v.f.k-u.f.k||v.g-u.g).map(x=>
 const h=healthHTML(nut(e));let extra='';
 if(strict&&removed.length){const h0=healthHTML(nut(q));extra=`<p class="note" style="margin-top:0">Before removing bee foods: ${h0.met} of 5 goals.</p>`}
 $('hScore').textContent=s.W?`${h.met} of 5 healthy goals`:'Add foods to check your breakfast';
-$('hBars').innerHTML=extra+h.rows;
+$('hBars').innerHTML=extra+h.rows;healthRank(e,s);
 }
 renderFoods();update();
 }
