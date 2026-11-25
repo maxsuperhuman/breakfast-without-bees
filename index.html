@@ -165,7 +165,7 @@ const GOALS=[['Fibre','fib','g',6.25,'min'],['Vitamin C','vc','mg',20,'min'],['F
 function alts(f){let out=(ALT[f.id]||[]).filter(id=>byId[id]&&dep(byId[id])<=.5);
 if(out.length<3){const v=x=>[x.fib/10,x.vc/50,x.fol/100,x.pro/10,x.sug/20];const a=v(f);
 const cand=foods.filter(x=>x.c===f.c&&dep(x)<=.25&&!out.includes(x.id)).map(x=>({id:x.id,d:v(x).reduce((s,y,i)=>s+(y-a[i])**2,0)})).sort((u,w)=>u.d-w.d);
-for(const c of cand){if(out.length>=3)break;out.push(c.id)}}return out.slice(0,3)}
+for(const c of cand){if(out.length>=3)break;out.push(c.id)}}return out.slice(0,3).sort((x,y)=>byId[x].p-byId[y].p)}
 $('presets').innerHTML=P.map((p,i)=>`<button class="pre" data-i="${i}" aria-pressed="false">${p[0]}</button>`).join('')+`<button class="pre" data-i="-2" aria-pressed="false">Empty plate</button>`;
 $('presets').addEventListener('click',e=>{const b=e.target.closest('.pre');if(!b)return;const i=+b.dataset.i;cur=i;q=i>=0?Object.assign({},P[i][1]):{};renderFoods();update()});
 function renderFoods(){let html='';const groups={};for(const f of foods){if(filter&&!f.id.includes(filter))continue;(groups[f.c]=groups[f.c]||[]).push(f)}
@@ -192,7 +192,7 @@ const e=eff(q),s=stats(e);
 // swaps
 const removed=strict?Object.entries(q).filter(([id,g])=>g>0&&byId[id]&&dep(byId[id])>.5):[];
 $('swaps').classList.toggle('hidden',!strict);
-$('swaps').innerHTML=!strict?'':(removed.length?`<h2>Swap ideas</h2><p class="note" style="margin:0 0 6px">These foods are off the plate. Tap a swap to put a bee-light food in their place, gram for gram.</p>`+removed.map(([id,g])=>{const f=byId[id];return `<div class="swap"><div class="h"><span style="text-transform:capitalize">${f.id} · ${g} g</span><span class="no">${Math.round(dep(f)*100)}% needs pollinators</span></div><div class="alts">${alts(f).map(a=>{const x=byId[a],dc=(x.p-f.p)*g/1000;return `<button class="alt" data-from="${f.id}" data-to="${a}">${a} · ${Math.round(dep(x)*100)}% · ${dc>=0?'+':''}${eur(dc)}</button>`}).join('')}</div></div>`}).join(''):'<h2>Swap ideas</h2><p class="note" style="margin:0">Nothing on this plate needs pollinators more than 50%.</p>');
+$('swaps').innerHTML=!strict?'':(removed.length?`<h2>Swap ideas</h2><p class="note" style="margin:0 0 6px">These foods are off the plate. Tap a swap to put a bee-light food in their place, gram for gram. The cheapest swap comes first.</p>`+removed.map(([id,g])=>{const f=byId[id];return `<div class="swap"><div class="h"><span style="text-transform:capitalize">${f.id} · ${g} g</span><span class="no">${Math.round(dep(f)*100)}% needs pollinators</span></div><div class="alts">${alts(f).map((a,i)=>{const x=byId[a],dc=(x.p-f.p)*g/1000;return `<button class="alt" data-from="${f.id}" data-to="${a}">${i===0?'Cheapest: ':''}${a} · ${Math.round(dep(x)*100)}% · ${dc>=0?'+':''}${eur(dc)}</button>`}).join('')}</div></div>`}).join(''):'<h2>Swap ideas</h2><p class="note" style="margin:0">Nothing on this plate needs pollinators more than 50%.</p>');
 $('share').textContent=Math.round(s.w*100)+'%';$('kW').textContent=(s.w*100).toFixed(1)+'%';$('kP').textContent=(s.p*100).toFixed(1)+'%';$('kN').textContent=(s.n*100).toFixed(1)+'%';$('kC').textContent=eur(s.C);
 const items=Object.entries(e).filter(([id,g])=>g>0&&byId[id]).map(([id,g])=>({f:byId[id],g,cost:byId[id].p*g/1000}));
 let a=-Math.PI/2,svg='<circle cx="100" cy="100" r="96" fill="#F4F1E6"/><circle cx="100" cy="100" r="80" fill="none" stroke="#E2DCC8" stroke-width="2"/>';const R=70,r=48;
