@@ -89,20 +89,47 @@ summary{font-weight:700;padding:10px 0;cursor:pointer;min-height:44px;display:fl
 .thrs{display:flex;justify-content:space-between;font-size:13px;color:var(--mut);gap:8px}
 @media(max-width:860px){main{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:560px){.plate{grid-template-columns:minmax(0,1fr)}.kp{display:grid;grid-template-columns:1fr 1fr;gap:8px}.kp .val{font-size:22px}.rk{grid-template-columns:7.5em minmax(0,1fr) 3.2em;font-size:14px}}
+.presel,.mbar{display:none}
+.tg{font-size:.8em;color:var(--mut);font-weight:600}
+@media(max-width:640px){
+body{font-size:15px}
+header{padding-top:14px}
+h1{font-size:25px}
+.long,.presets{display:none}
+.presel{display:flex;align-items:center;gap:10px;margin:12px 0 4px;font-weight:700}
+.presel select{flex:1;height:48px;border:2px solid var(--honey);border-radius:14px;background:var(--panel);color:var(--ink);font:inherit;font-weight:700;padding:0 12px}
+.views{margin-bottom:8px}.view{padding:6px 12px;min-height:40px;font-size:15px}
+.mbar{position:sticky;top:0;z-index:20;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;background:var(--forest);color:#F4F1E6;padding:8px 12px 10px;margin:10px 0 12px;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.mbar .mt{grid-column:1/-1;font-size:12px;color:#C9D6CC;font-weight:700}
+.mbar div{display:flex;flex-direction:column;line-height:1.1}
+.mbar b{font-family:'Fredoka';font-size:22px;white-space:nowrap}.mbar div span{font-size:12px;color:#C9D6CC}
+.res{display:flex;flex-direction:column}
+#vtabs{order:1}#viewB,#viewH{order:2}#strict{order:3;margin-top:16px}#thrBox{order:4;margin:0 0 12px}#swaps{order:5}
+.plate{padding:16px}.fig{max-width:230px}
+.kp .lab{font-size:13px}
+.card{padding:14px;border-radius:16px}.card h2,.pick h2{font-size:20px}
+.rk{grid-template-columns:8.6em minmax(0,1fr) 2.8em;font-size:14px;line-height:1.25}
+.hnote{margin-left:0!important}
+.strict{font-size:14px}
+.pick{padding:14px}
+.food{gap:8px}.step{width:40px;height:40px}.ctl input{width:54px;height:40px}
+}
 </style>
 </head>
 <body>
 <header class="wrap">
 <h1>How much of your breakfast did the bees make?</h1>
-<p>Start from a traditional or everyday breakfast from around the world, or build your own. See how much of it needs pollinators, by weight and by price, and where you rank against the world.</p>
+<p>Pick a breakfast from around the world, or build your own.<span class="long"> See how much of it needs pollinators, by weight, by price and by nutrients, and where you rank against the world.</span></p>
 <div class="views" style="margin-top:12px"><span style="align-self:center;font-weight:700;margin-right:4px">Data:</span><button class="view" id="dK" aria-pressed="true">Klein 2007</button><button class="view" id="dS" aria-pressed="false">Newer data, 2024</button></div>
 <div class="presets" id="presets"></div>
+<label class="presel"><span>Breakfast</span><select id="preSel" aria-label="Choose a breakfast"></select></label>
 </header>
+<div class="mbar" id="mbar" aria-live="polite"><span class="mt">🐝 bee share</span><div><b id="mW">0%</b><span>weight</span></div><div><b id="mP">0%</b><span>bill</span></div><div><b id="mN">0%</b><span>nutrients</span></div><div><b id="mC">€0.00</b><span>price</span></div></div>
 <main class="wrap">
-<section>
+<section class="res">
 <button class="strict" id="strict" aria-pressed="false"><i></i><span id="strictLab">Remove foods that need pollinators more than 50% and suggest swaps</span></button>
 <div class="thr" id="thrBox"><label for="thr">Remove foods that need pollinators more than <b id="thrVal">50%</b></label><input type="range" id="thr" min="0" max="95" step="5" value="50"><div class="thrs"><span>0%: only bee-free foods</span><span>95%: only the most dependent</span></div></div>
-<div class="views"><button class="view" id="vB" aria-pressed="true">Bees</button><button class="view" id="vH" aria-pressed="false">How healthy is it?</button></div>
+<div class="views" id="vtabs"><button class="view" id="vB" aria-pressed="true">Bees</button><button class="view" id="vH" aria-pressed="false">How healthy is it?</button></div>
 <div class="card" id="swaps" style="margin-top:0;margin-bottom:18px"></div>
 <div id="viewB">
 <div class="plate">
@@ -162,6 +189,7 @@ const byId=Object.fromEntries(foods.map(f=>[f.id,f]));
 const dep=f=>src==='s'&&f.s>=0?f.s:CL[f.k0][1];
 const kOf=f=>{if(f.k0===5)return 5;const d=dep(f);return d<=0?0:d<.1?1:d<.4?2:d<.9?3:4};
 foods.forEach(f=>Object.defineProperty(f,'k',{get(){return kOf(f)}}));
+const nm=n=>n.replace(' (traditional)',' <small class="tg">trad.</small>').replace(' everyday',' <small class="tg">everyday</small>');
 const col=i=>`var(${CL[i][2]})`,eur=v=>(v<0?'−€':'€')+Math.abs(v).toFixed(2);
 const stepOf=f=>f.c==='drink'&&!f.id.includes('juice')?5:(['oil','sweet'].includes(f.c)?10:25);
 let q={},cur=-2,mode='w',filter='',strict=false,view='B',TH=.5;
@@ -178,13 +206,16 @@ if(out.length<3){const v=x=>[x.fib/10,x.vc/50,x.fol/100,x.pro/10,x.sug/20];const
 const cand=foods.filter(x=>x.c===f.c&&dep(x)<=Math.min(TH,.25)+1e-9&&!out.includes(x.id)).map(x=>({id:x.id,d:v(x).reduce((s,y,i)=>s+(y-a[i])**2,0)})).sort((u,w)=>u.d-w.d);
 for(const c of cand){if(out.length>=3)break;out.push(c.id)}}return out.slice(0,3).sort((x,y)=>byId[x].p-byId[y].p)}
 $('presets').innerHTML=P.map((p,i)=>`<button class="pre" data-i="${i}" aria-pressed="false">${p[0]}</button>`).join('')+`<button class="pre" data-i="-2" aria-pressed="false">Empty plate</button>`;
-$('presets').addEventListener('click',e=>{const b=e.target.closest('.pre');if(!b)return;const i=+b.dataset.i;cur=i;q=i>=0?Object.assign({},P[i][1]):{};renderFoods();update()});
-function renderFoods(){let html='';const groups={};for(const f of foods){if(filter&&!f.id.includes(filter))continue;(groups[f.c]=groups[f.c]||[]).push(f)}
+const pick=i=>{cur=i;q=i>=0?Object.assign({},P[i][1]):{};renderFoods();update()};
+$('presets').addEventListener('click',e=>{const b=e.target.closest('.pre');if(!b)return;pick(+b.dataset.i)});
+$('preSel').innerHTML='<option value="-1" disabled>My own breakfast</option>'+P.map((p,i)=>`<option value="${i}">${p[0]}</option>`).join('')+'<option value="-2">Empty plate</option>';
+$('preSel').addEventListener('change',e=>pick(+e.target.value));
+function renderFoods(){let html='';const groups={};const mob=matchMedia('(max-width:640px)').matches;if(mob&&!filter){const mine=foods.filter(f=>q[f.id]>0);if(mine.length)groups.__plate=mine}for(const f of foods){if(filter&&!f.id.includes(filter))continue;(groups[f.c]=groups[f.c]||[]).push(f)}
 for(const[c,list]of Object.entries(groups)){const used=list.some(f=>q[f.id]>0);
-html+=`<details ${filter||used?'open':''}><summary>${CAT[c]} (${list.length})</summary>`+list.map(f=>`<div class="food"><span class="dot" style="background:${col(f.k)}"></span><div class="nm2">${f.id}<small>${Math.round(dep(f)*100)}% needs pollinators · €${f.p.toFixed(2)}/kg</small></div><div class="ctl"><button class="step" data-id="${f.id}" data-d="-1" aria-label="Less ${f.id}">−</button><input data-id="${f.id}" inputmode="numeric" aria-label="${f.id} grams" value="${q[f.id]||0}"><button class="step" data-id="${f.id}" data-d="1" aria-label="More ${f.id}">+</button></div></div>`).join('')+'</details>'}
+html+=`<details ${filter||c==='__plate'||(used&&!mob)?'open':''}><summary>${c==='__plate'?'On your plate':CAT[c]} (${list.length})</summary>`+list.map(f=>`<div class="food"><span class="dot" style="background:${col(f.k)}"></span><div class="nm2">${f.id}<small>${Math.round(dep(f)*100)}% needs pollinators · €${f.p.toFixed(2)}/kg</small></div><div class="ctl"><button class="step" data-id="${f.id}" data-d="-1" aria-label="Less ${f.id}">−</button><input data-id="${f.id}" inputmode="numeric" aria-label="${f.id} grams" value="${q[f.id]||0}"><button class="step" data-id="${f.id}" data-d="1" aria-label="More ${f.id}">+</button></div></div>`).join('')+'</details>'}
 $('foods').innerHTML=html||'<p class="note">No food matches that search.</p>'}
-$('foods').addEventListener('click',e=>{const b=e.target.closest('.step');if(!b)return;const f=byId[b.dataset.id];q[f.id]=Math.max(0,(q[f.id]||0)+stepOf(f)*(+b.dataset.d));b.parentNode.querySelector('input').value=q[f.id];cur=-1;update()});
-$('foods').addEventListener('input',e=>{const t=e.target;if(t.tagName!=='INPUT')return;q[t.dataset.id]=Math.max(0,parseFloat(t.value)||0);cur=-1;update()});
+$('foods').addEventListener('click',e=>{const b=e.target.closest('.step');if(!b)return;const f=byId[b.dataset.id];q[f.id]=Math.max(0,(q[f.id]||0)+stepOf(f)*(+b.dataset.d));$('foods').querySelectorAll('input').forEach(i=>{if(i.dataset.id===f.id)i.value=q[f.id]});cur=-1;update()});
+$('foods').addEventListener('input',e=>{const t=e.target;if(t.tagName!=='INPUT')return;q[t.dataset.id]=Math.max(0,parseFloat(t.value)||0);$('foods').querySelectorAll('input').forEach(i=>{if(i!==t&&i.dataset.id===t.dataset.id)i.value=q[t.dataset.id]});cur=-1;update()});
 $('q').addEventListener('input',e=>{filter=e.target.value.trim().toLowerCase();renderFoods()});
 $('tW').addEventListener('click',()=>{mode='w';update()});$('tP').addEventListener('click',()=>{mode='p';update()});$('tN').addEventListener('click',()=>{mode='n';update()});
 $('strict').addEventListener('click',()=>{strict=!strict;update()});
@@ -201,10 +232,10 @@ function healthRank(e,s){const showMe=(cur<0||strict)&&s.W>0;
 let rows=P.map(([n,b],i)=>({name:n,...hscore(b),bn:stats(b).n,me:!showMe&&i===cur}));
 if(showMe)rows.push({name:strict?'Your plate, no bee foods':'Your breakfast',...hscore(e),bn:s.n,me:true});
 rows.sort((u,v)=>v.score-u.score);
-$('hRank').innerHTML=rows.map(x=>`<div class="rk ${x.me?'me':''}"><span class="nm">${x.name}</span><div class="tr"><div class="fl" style="width:${x.score}%"></div></div><span class="v">${Math.round(x.score)}</span></div><div style="font-size:12px;color:var(--mut);margin:-2px 0 4px 9.5em">${x.met} of 5 goals · ${Math.round(x.bn*100)}% of nutrients from pollinators</div>`).join('');
+$('hRank').innerHTML=rows.map(x=>`<div class="rk ${x.me?'me':''}"><span class="nm">${nm(x.name)}</span><div class="tr"><div class="fl" style="width:${x.score}%"></div></div><span class="v">${Math.round(x.score)}</span></div><div class="hnote" style="font-size:12px;color:var(--mut);margin:-2px 0 4px 9.5em">${x.met} of 5 goals · ${Math.round(x.bn*100)}% of nutrients from pollinators</div>`).join('');
 const pos=rows.findIndex(x=>x.me)+1;$('hRankLine').textContent=pos?`${rows[pos-1].name}: #${pos} of ${rows.length} for health`:'Pick a breakfast or add foods to see where it ranks.'}
 function update(){
-document.querySelectorAll('.pre').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.i===cur));
+document.querySelectorAll('.pre').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.i===cur));$('preSel').value=String(cur);
 $('tW').setAttribute('aria-pressed',mode==='w');$('tP').setAttribute('aria-pressed',mode==='p');$('tN').setAttribute('aria-pressed',mode==='n');
 $('strict').setAttribute('aria-pressed',strict);$('thrVal').textContent=Math.round(TH*100)+'%';$('strictLab').textContent=`Remove foods that need pollinators more than ${Math.round(TH*100)}% and suggest swaps`;$('dK').setAttribute('aria-pressed',src==='k');$('dS').setAttribute('aria-pressed',src==='s');$('vB').setAttribute('aria-pressed',view==='B');$('vH').setAttribute('aria-pressed',view==='H');
 $('viewB').classList.toggle('hidden',view!=='B');$('viewH').classList.toggle('hidden',view!=='H');
@@ -213,7 +244,7 @@ const e=eff(q),s=stats(e);
 const removed=strict?Object.entries(q).filter(([id,g])=>g>0&&byId[id]&&dep(byId[id])>TH+1e-9):[];
 $('swaps').classList.toggle('hidden',!strict);
 $('swaps').innerHTML=!strict?'':(removed.length?`<h2>Swap ideas</h2><p class="note" style="margin:0 0 6px">These foods are off the plate. Tap a swap to put a bee-light food in their place, gram for gram. The cheapest swap comes first.</p>`+removed.map(([id,g])=>{const f=byId[id];return `<div class="swap"><div class="h"><span style="text-transform:capitalize">${f.id} · ${g} g</span><span class="no">${Math.round(dep(f)*100)}% needs pollinators</span></div><div class="alts">${alts(f).length?'':'<span class="note">No swap in this group at this level. Try a higher level.</span>'}${alts(f).map((a,i)=>{const x=byId[a],dc=(x.p-f.p)*g/1000;return `<button class="alt" data-from="${f.id}" data-to="${a}">${i===0?'Cheapest: ':''}${a} · ${Math.round(dep(x)*100)}% · ${dc>=0?'+':''}${eur(dc)}</button>`}).join('')}</div></div>`}).join(''):`<h2>Swap ideas</h2><p class="note" style="margin:0">Nothing on this plate needs pollinators more than ${Math.round(TH*100)}%.</p>`);
-$('share').textContent=Math.round(s.w*100)+'%';$('kW').textContent=(s.w*100).toFixed(1)+'%';$('kP').textContent=(s.p*100).toFixed(1)+'%';$('kN').textContent=(s.n*100).toFixed(1)+'%';$('kC').textContent=eur(s.C);
+$('share').textContent=Math.round(s.w*100)+'%';$('kW').textContent=(s.w*100).toFixed(1)+'%';$('kP').textContent=(s.p*100).toFixed(1)+'%';$('kN').textContent=(s.n*100).toFixed(1)+'%';$('kC').textContent=eur(s.C);$('mW').textContent=Math.round(s.w*100)+'%';$('mP').textContent=Math.round(s.p*100)+'%';$('mN').textContent=Math.round(s.n*100)+'%';$('mC').textContent=eur(s.C);
 const items=Object.entries(e).filter(([id,g])=>g>0&&byId[id]).map(([id,g])=>({f:byId[id],g,cost:byId[id].p*g/1000}));
 let a=-Math.PI/2,svg='<circle cx="100" cy="100" r="96" fill="#F4F1E6"/><circle cx="100" cy="100" r="80" fill="none" stroke="#E2DCC8" stroke-width="2"/>';const R=70,r=48;
 if(!s.W)svg+='<circle cx="100" cy="100" r="59" fill="none" stroke="#E2DCC8" stroke-width="22"/>';
@@ -224,7 +255,7 @@ $('ring').innerHTML=svg;
 const showMe=(cur<0||strict)&&s.W>0;
 let rows=WORLD.map((x,i)=>({...x,me:!showMe&&i===cur}));if(showMe)rows.push({...s,name:strict?'Your plate, no bee foods':'Your breakfast',me:true});
 rows.sort((u,v)=>v[mode]-u[mode]);const mx=Math.max(.01,...rows.map(x=>x[mode]));
-$('rank').innerHTML=rows.map(x=>`<div class="rk ${x.me?'me':''}"><span class="nm">${x.name}</span><div class="tr"><div class="fl" style="width:${x[mode]/mx*100}%"></div></div><span class="v">${Math.round(x[mode]*100)}%</span></div>`).join('');
+$('rank').innerHTML=rows.map(x=>`<div class="rk ${x.me?'me':''}"><span class="nm">${nm(x.name)}</span><div class="tr"><div class="fl" style="width:${x[mode]/mx*100}%"></div></div><span class="v">${Math.round(x[mode]*100)}%</span></div>`).join('');
 const pos=rows.findIndex(x=>x.me)+1;
 $('rankline').textContent=pos?`${rows[pos-1].name}: #${pos} of ${rows.length} ${mode==='w'?'by weight':mode==='p'?'by bill':'by nutrients'}`:'Add foods to see where your breakfast ranks.';
 $('list').innerHTML=items.length?items.sort((u,v)=>v.f.k-u.f.k||v.g-u.g).map(x=>`<div><span><i class="dot" style="background:${col(x.f.k)};margin-right:6px"></i>${x.f.id} · ${x.g} g</span><b>${eur(x.cost)}</b></div>`).join(''):'<p class="note">The plate is empty. Pick a breakfast above or add foods.</p>';
