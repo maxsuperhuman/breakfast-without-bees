@@ -65,6 +65,24 @@ summary{font-weight:700;padding:10px 0;cursor:pointer;min-height:44px;display:fl
 .legend span{display:inline-flex;align-items:center;gap:6px}
 .list{font-size:15px}.list div{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--line)}
 .note{font-size:13px;color:var(--mut);margin-top:10px}
+.views{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.view{border:2px solid var(--line);background:var(--panel);border-radius:12px;padding:8px 16px;min-height:44px;font-weight:700;font-family:'Fredoka'}
+.view[aria-pressed=true]{background:var(--forest);border-color:var(--forest);color:#F4F1E6}
+.strict{display:flex;gap:12px;align-items:center;background:var(--panel);border:2px solid var(--line);border-radius:14px;padding:10px 14px;min-height:48px;text-align:left;width:100%;margin-bottom:12px;font-weight:700}
+.strict i{width:44px;height:26px;border-radius:13px;background:var(--chip);border:1px solid var(--line);position:relative;flex:none}
+.strict i::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--mut);transition:left .2s}
+.strict[aria-pressed=true]{border-color:var(--c3)}.strict[aria-pressed=true] i{background:var(--c3)}.strict[aria-pressed=true] i::after{left:21px;background:#fff}
+.score{font-family:'Fredoka';font-size:clamp(34px,6vw,48px);line-height:1}
+.hb2{margin:12px 0}.hb2 .t{display:flex;justify-content:space-between;gap:8px;font-size:15px}.hb2 .t b{white-space:nowrap}
+.track{height:14px;border-radius:7px;background:var(--chip);position:relative;overflow:hidden;margin-top:4px}
+.fill{height:100%;border-radius:7px;background:var(--c0)}.fill.bad{background:var(--c3)}
+.goal{position:absolute;top:-3px;bottom:-3px;width:3px;background:var(--ink);left:50%}
+.ok{color:var(--c0);font-weight:800}.no{color:var(--c3);font-weight:800}
+.swap{border-top:1px solid var(--line);padding:10px 0}
+.swap .h{display:flex;justify-content:space-between;gap:8px;font-weight:700}
+.alts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.alt{border:1px solid var(--line);background:var(--chip);border-radius:999px;padding:6px 12px;min-height:40px;font-size:14px;font-weight:700;text-transform:capitalize}
+.hidden{display:none}
 @media(max-width:860px){main{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:560px){.plate{grid-template-columns:minmax(0,1fr)}.kp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.kp .val{font-size:22px}.rk{grid-template-columns:7.5em minmax(0,1fr) 3.2em;font-size:14px}}
 </style>
@@ -77,6 +95,10 @@ summary{font-weight:700;padding:10px 0;cursor:pointer;min-height:44px;display:fl
 </header>
 <main class="wrap">
 <section>
+<button class="strict" id="strict" aria-pressed="false"><i></i><span>Remove foods that need pollinators more than 50% and suggest swaps</span></button>
+<div class="views"><button class="view" id="vB" aria-pressed="true">Bees</button><button class="view" id="vH" aria-pressed="false">How healthy is it?</button></div>
+<div class="card" id="swaps" style="margin-top:0;margin-bottom:18px"></div>
+<div id="viewB">
 <div class="plate">
 <div class="fig"><svg id="ring" viewBox="0 0 200 200" role="img" aria-label="Plate chart coloured by pollinator dependence"></svg><div class="ctr"><b id="share">0%</b><span>of the weight comes from pollinators</span></div></div>
 <div class="kp">
@@ -96,6 +118,16 @@ summary{font-weight:700;padding:10px 0;cursor:pointer;min-height:44px;display:fl
 <div class="legend" id="legend"></div>
 <div class="list" id="list" style="margin-top:10px"></div>
 </div>
+</div>
+<div id="viewH" class="hidden">
+<div class="card" style="margin-top:0">
+<h2>How healthy is your breakfast?</h2>
+<p class="score" id="hScore"></p>
+<p class="note" style="margin-top:4px">A good breakfast gives about a quarter of what you need in a day. Goals use the reference values printed on EU food labels: vitamin C 80 mg, folate 200 µg, protein 50 g and sugars 90 g a day, plus 25 g of fibre.</p>
+<div id="hBars"></div>
+<p class="note">Sugars here are all sugars, including those in fruit and milk. Nutrition values are typical values per 100 g and are approximate.</p>
+</div>
+</div>
 </section>
 <section class="pick" aria-label="Foods">
 <h2>Foods (grams)</h2>
@@ -106,53 +138,78 @@ summary{font-weight:700;padding:10px 0;cursor:pointer;min-height:44px;display:fl
 </main>
 <script>
 {
-const F=[["apple", "fruit", 4.45, 3], ["pear", "fruit", 4.25, 3], ["orange", "fruit", 3.15, 1], ["banana", "fruit", 2.15, 0], ["kiwi", "fruit", 11.5, 4], ["zucchini", "veg", 2.95, 4], ["avocado", "veg", 2.95, 3], ["tomato", "veg", 3.95, 1], ["cucumber", "veg", 3.25, 3], ["watermelon", "fruit", 0.85, 4], ["melon", "fruit", 2.99, 4], ["blueberry", "fruit", 30, 3], ["raspberry", "fruit", 55.7, 3], ["strawberry", "fruit", 20, 2], ["almond", "nuts", 36, 3], ["honey", "sweet", 13.3, 5], ["butter", "dairy", 15.4, 0], ["milk", "dairy", 2.5, 0], ["yogurt", "dairy", 9.5, 0], ["bread", "grain", 6, 0], ["cereal", "grain", 7, 0], ["cookies", "grain", 20, 0], ["cocoa", "drink", 21.9, 4], ["lemon", "fruit", 2.5, 1], ["grapefruit", "fruit", 2.0, 1], ["mandarin", "fruit", 2.5, 1], ["lime", "fruit", 4, 1], ["grapes", "fruit", 4, 0], ["cherries", "fruit", 12, 3], ["apricot", "fruit", 5, 3], ["peach", "fruit", 4, 3], ["plum", "fruit", 4, 3], ["mango", "fruit", 6, 3], ["pineapple", "fruit", 3, 0], ["pomegranate", "fruit", 4, 2], ["fig", "fruit", 8, 2], ["dates", "fruit", 10, 0], ["papaya", "fruit", 5, 1], ["passion fruit", "fruit", 15, 4], ["coconut", "fruit", 3, 2], ["blackberry", "fruit", 30, 3], ["cranberry (dried)", "fruit", 15, 3], ["raisins", "fruit", 8, 0], ["prunes", "fruit", 10, 3], ["potato", "veg", 1.2, 0], ["onion", "veg", 1.5, 0], ["garlic", "veg", 8, 0], ["carrot", "veg", 1.5, 0], ["lettuce", "veg", 5, 0], ["spinach", "veg", 8, 0], ["cabbage", "veg", 1.5, 0], ["broccoli", "veg", 4, 0], ["cauliflower", "veg", 3, 0], ["sweet pepper", "veg", 4, 1], ["chili", "veg", 10, 1], ["eggplant", "veg", 3, 2], ["pumpkin", "veg", 2, 4], ["mushrooms", "veg", 6, 0], ["green beans", "veg", 5, 1], ["peas", "veg", 3, 1], ["sweetcorn", "veg", 4, 0], ["olives", "veg", 8, 0], ["celery", "veg", 3, 0], ["beetroot", "veg", 3, 0], ["chickpeas", "pulses", 3, 0], ["lentils", "pulses", 3, 0], ["dry beans", "pulses", 3, 1], ["baked beans", "pulses", 3, 1], ["soy (tofu, natto, miso)", "pulses", 8, 2], ["peanuts", "nuts", 6, 1], ["peanut butter", "nuts", 10, 1], ["walnuts", "nuts", 15, 0], ["hazelnuts", "nuts", 18, 0], ["pistachio", "nuts", 30, 0], ["cashew", "nuts", 25, 3], ["brazil nut", "nuts", 25, 4], ["tahini (sesame)", "nuts", 8, 2], ["sunflower seeds", "nuts", 6, 2], ["buckwheat", "grain", 4, 3], ["flour", "grain", 1.2, 0], ["croissant", "grain", 12, 0], ["pasta", "grain", 2.5, 0], ["rice", "grain", 2.5, 0], ["oats", "grain", 3, 0], ["tortilla (corn)", "grain", 6, 0], ["quinoa", "grain", 8, 0], ["pancakes", "grain", 5, 0], ["noodles", "grain", 4, 0], ["cheese (cheddar)", "dairy", 12, 0], ["halloumi", "dairy", 12, 0], ["feta", "dairy", 10, 0], ["cottage cheese", "dairy", 8, 0], ["sour cream", "dairy", 6, 0], ["eggs", "dairy", 6, 0], ["bacon", "meat", 15, 0], ["sausage", "meat", 10, 0], ["ham", "meat", 15, 0], ["chicken", "meat", 7, 0], ["beef", "meat", 15, 0], ["salmon", "fish", 20, 0], ["tuna (canned)", "fish", 12, 0], ["sardines", "fish", 8, 0], ["olive oil", "oil", 9, 0], ["sunflower oil", "oil", 3, 2], ["sugar", "sweet", 1.3, 0], ["maple syrup", "sweet", 25, 0], ["strawberry jam", "sweet", 8, 2], ["dark chocolate", "sweet", 15, 3], ["coffee", "drink", 20, 2], ["tea", "drink", 30, 0], ["orange juice", "drink", 2.5, 1], ["apple juice", "drink", 2, 3], ["carob powder", "drink", 10, 2]];
+const F=[["apple", "fruit", 4.45, 3, 2.4, 3, 4.6, 10.4, 0.3], ["pear", "fruit", 4.25, 3, 3.1, 7, 4.3, 9.8, 0.4], ["orange", "fruit", 3.15, 1, 2.4, 30, 53.2, 9.4, 0.9], ["banana", "fruit", 2.15, 0, 2.6, 20, 8.7, 12.2, 1.1], ["kiwi", "fruit", 11.5, 4, 3.0, 25, 92.7, 9.0, 1.1], ["zucchini", "veg", 2.95, 4, 1.0, 24, 17.9, 2.5, 1.2], ["avocado", "veg", 2.95, 3, 6.7, 81, 10.0, 0.7, 2.0], ["tomato", "veg", 3.95, 1, 1.2, 15, 13.7, 2.6, 0.9], ["cucumber", "veg", 3.25, 3, 0.5, 7, 2.8, 1.7, 0.7], ["watermelon", "fruit", 0.85, 4, 0.4, 3, 8.1, 6.2, 0.6], ["melon", "fruit", 2.99, 4, 0.9, 21, 36.7, 7.9, 0.8], ["blueberry", "fruit", 30, 3, 2.4, 6, 9.7, 10.0, 0.7], ["raspberry", "fruit", 55.7, 3, 6.5, 21, 26.2, 4.4, 1.2], ["strawberry", "fruit", 20, 2, 2.0, 24, 58.8, 4.9, 0.7], ["almond", "nuts", 36, 3, 12.5, 44, 0, 4.4, 21], ["honey", "sweet", 13.3, 5, 0.2, 2, 0.5, 82, 0.3], ["butter", "dairy", 15.4, 0, 0, 3, 0, 0.06, 0.9], ["milk", "dairy", 2.5, 0, 0, 5, 0, 5.05, 3.3], ["yogurt", "dairy", 9.5, 0, 0, 7, 0.5, 4.7, 3.5], ["bread", "grain", 6, 0, 6.0, 50, 0, 4.3, 9], ["cereal", "grain", 7, 0, 10.1, 32, 0, 1.0, 8], ["cookies", "grain", 20, 0, 2.0, 72, 0, 33, 6], ["cocoa", "drink", 21.9, 4, 37, 32, 0, 1.8, 20], ["lemon", "fruit", 2.5, 1, 2.8, 11, 53, 2.5, 1.1], ["grapefruit", "fruit", 2.0, 1, 1.6, 13, 31, 7, 0.8], ["mandarin", "fruit", 2.5, 1, 1.8, 16, 27, 10.6, 0.8], ["lime", "fruit", 4, 1, 2.8, 8, 29, 1.7, 0.7], ["grapes", "fruit", 4, 0, 0.9, 2, 3.2, 15.5, 0.7], ["cherries", "fruit", 12, 3, 2.1, 4, 7, 12.8, 1.1], ["apricot", "fruit", 5, 3, 2, 9, 10, 9.2, 1.4], ["peach", "fruit", 4, 3, 1.5, 4, 6.6, 8.4, 0.9], ["plum", "fruit", 4, 3, 1.4, 5, 9.5, 9.9, 0.7], ["mango", "fruit", 6, 3, 1.6, 43, 36, 13.7, 0.8], ["pineapple", "fruit", 3, 0, 1.4, 18, 48, 9.9, 0.5], ["pomegranate", "fruit", 4, 2, 4, 38, 10, 13.7, 1.7], ["fig", "fruit", 8, 2, 2.9, 6, 2, 16, 0.8], ["dates", "fruit", 10, 0, 6.7, 15, 0.4, 66, 2.5], ["papaya", "fruit", 5, 1, 1.7, 37, 61, 7.8, 0.5], ["passion fruit", "fruit", 15, 4, 10.4, 14, 30, 11, 2.2], ["coconut", "fruit", 3, 2, 9, 26, 3.3, 6, 3.3], ["blackberry", "fruit", 30, 3, 5.3, 25, 21, 4.9, 1.4], ["cranberry (dried)", "fruit", 15, 3, 5.3, 0, 0.2, 65, 0.1], ["raisins", "fruit", 8, 0, 3.7, 5, 2.3, 59, 3.1], ["prunes", "fruit", 10, 3, 7.1, 4, 0.6, 38, 2.2], ["potato", "veg", 1.2, 0, 1.8, 10, 7, 0.9, 1.9], ["onion", "veg", 1.5, 0, 1.7, 19, 7.4, 4.2, 1.1], ["garlic", "veg", 8, 0, 2.1, 3, 31, 1, 6.4], ["carrot", "veg", 1.5, 0, 2.8, 19, 6, 4.7, 0.9], ["lettuce", "veg", 5, 0, 1.3, 38, 9, 0.8, 1.4], ["spinach", "veg", 8, 0, 2.2, 194, 28, 0.4, 2.9], ["cabbage", "veg", 1.5, 0, 2.5, 43, 37, 3.2, 1.3], ["broccoli", "veg", 4, 0, 2.6, 63, 89, 1.7, 2.8], ["cauliflower", "veg", 3, 0, 2, 57, 48, 1.9, 1.9], ["sweet pepper", "veg", 4, 1, 2.1, 46, 128, 4.2, 1], ["chili", "veg", 10, 1, 1.5, 23, 144, 5.3, 1.9], ["eggplant", "veg", 3, 2, 3, 22, 2.2, 3.5, 1], ["pumpkin", "veg", 2, 4, 0.5, 16, 9, 2.8, 1], ["mushrooms", "veg", 6, 0, 1, 17, 2.1, 2, 3.1], ["green beans", "veg", 5, 1, 2.7, 33, 12, 3.3, 1.8], ["peas", "veg", 3, 1, 5, 65, 40, 5.7, 5.4], ["sweetcorn", "veg", 4, 0, 2, 42, 7, 6.3, 3.3], ["olives", "veg", 8, 0, 3.2, 0, 0.9, 0, 0.8], ["celery", "veg", 3, 0, 1.6, 36, 3, 1.3, 0.7], ["beetroot", "veg", 3, 0, 2.8, 109, 4.9, 6.8, 1.6], ["chickpeas", "pulses", 3, 0, 7.6, 172, 1.3, 4.8, 8.9], ["lentils", "pulses", 3, 0, 7.9, 181, 1.5, 1.8, 9], ["dry beans", "pulses", 3, 1, 8.7, 149, 0, 0.3, 8.9], ["baked beans", "pulses", 3, 1, 4.1, 20, 0, 5, 4.8], ["soy (tofu, natto, miso)", "pulses", 8, 2, 2, 20, 2, 2, 12], ["peanuts", "nuts", 6, 1, 8.5, 240, 0, 4, 26], ["peanut butter", "nuts", 10, 1, 6, 87, 0, 9, 25], ["walnuts", "nuts", 15, 0, 6.7, 98, 1.3, 2.6, 15], ["hazelnuts", "nuts", 18, 0, 9.7, 113, 6.3, 4.3, 15], ["pistachio", "nuts", 30, 0, 10.6, 51, 5.6, 7.7, 20], ["cashew", "nuts", 25, 3, 3.3, 25, 0.5, 5.9, 18], ["brazil nut", "nuts", 25, 4, 7.5, 22, 0.7, 2.3, 14], ["tahini (sesame)", "nuts", 8, 2, 9.3, 98, 0, 0.5, 17], ["sunflower seeds", "nuts", 6, 2, 8.6, 227, 1.4, 2.6, 21], ["buckwheat", "grain", 4, 3, 10, 30, 0, 0, 13], ["flour", "grain", 1.2, 0, 2.7, 26, 0, 0.3, 10], ["croissant", "grain", 12, 0, 2.6, 88, 0.2, 11, 8.2], ["pasta", "grain", 2.5, 0, 3.2, 18, 0, 2.7, 13], ["rice", "grain", 2.5, 0, 0.4, 3, 0, 0.1, 2.7], ["oats", "grain", 3, 0, 10, 56, 0, 1, 13], ["tortilla (corn)", "grain", 6, 0, 6.3, 30, 0, 0.9, 5.7], ["quinoa", "grain", 8, 0, 7, 184, 0, 0, 14], ["pancakes", "grain", 5, 0, 1, 30, 0.3, 6, 6.4], ["noodles", "grain", 4, 0, 2, 20, 0, 1, 12], ["cheese (cheddar)", "dairy", 12, 0, 0, 18, 0, 0.5, 25], ["halloumi", "dairy", 12, 0, 0, 10, 0, 1.5, 21], ["feta", "dairy", 10, 0, 0, 32, 0, 4.1, 14], ["cottage cheese", "dairy", 8, 0, 0, 12, 0, 2.7, 11], ["sour cream", "dairy", 6, 0, 0, 11, 0.9, 2.9, 2.4], ["eggs", "dairy", 6, 0, 0, 47, 0, 0.4, 12.6], ["bacon", "meat", 15, 0, 0, 2, 0, 0, 37], ["sausage", "meat", 10, 0, 0, 3, 0, 1, 14], ["ham", "meat", 15, 0, 0, 3, 0, 1, 17], ["chicken", "meat", 7, 0, 0, 4, 0, 0, 27], ["beef", "meat", 15, 0, 0, 7, 0, 0, 26], ["salmon", "fish", 20, 0, 0, 25, 0, 0, 20], ["tuna (canned)", "fish", 12, 0, 0, 4, 0, 0, 26], ["sardines", "fish", 8, 0, 0, 10, 0, 0, 25], ["olive oil", "oil", 9, 0, 0, 0, 0, 0, 0], ["sunflower oil", "oil", 3, 2, 0, 0, 0, 0, 0], ["sugar", "sweet", 1.3, 0, 0, 0, 0, 100, 0], ["maple syrup", "sweet", 25, 0, 0, 0, 0, 60, 0], ["strawberry jam", "sweet", 8, 2, 1.1, 14, 8.8, 49, 0.4], ["dark chocolate", "sweet", 15, 3, 11, 0, 0, 24, 7.8], ["coffee", "drink", 20, 2, 0, 0, 0, 0, 0], ["tea", "drink", 30, 0, 0, 0, 0, 0, 0], ["orange juice", "drink", 2.5, 1, 0.2, 30, 50, 8.4, 0.7], ["apple juice", "drink", 2, 3, 0.2, 0, 0.9, 9.6, 0.1], ["carob powder", "drink", 10, 2, 39.8, 29, 0.2, 49.1, 4.6]];
 const P=[["Cyprus", {"halloumi": 80, "bread": 80, "tomato": 100, "cucumber": 100, "olives": 40, "eggs": 50, "watermelon": 200, "coffee": 7}], ["Turkey", {"bread": 80, "feta": 60, "olives": 40, "tomato": 80, "cucumber": 80, "eggs": 50, "honey": 20, "butter": 10, "tea": 3}], ["Full English (UK)", {"eggs": 100, "bacon": 60, "sausage": 100, "baked beans": 135, "bread": 60, "mushrooms": 50, "tomato": 80, "butter": 10, "tea": 2}], ["France", {"croissant": 60, "bread": 80, "butter": 15, "strawberry jam": 30, "orange juice": 200, "coffee": 10}], ["Italy", {"croissant": 70, "coffee": 8, "milk": 150, "orange juice": 150}], ["USA", {"pancakes": 150, "maple syrup": 40, "blueberry": 75, "bacon": 40, "orange juice": 200, "coffee": 10}], ["Mexico", {"eggs": 100, "tortilla (corn)": 60, "dry beans": 100, "tomato": 60, "chili": 10, "avocado": 50, "coffee": 8}], ["Japan", {"rice": 150, "soy (tofu, natto, miso)": 60, "salmon": 80, "tea": 2}], ["India", {"flour": 100, "butter": 15, "yogurt": 100, "potato": 80, "tea": 2, "milk": 100, "sugar": 10}], ["Russia", {"buckwheat": 60, "milk": 200, "butter": 10, "cottage cheese": 100, "honey": 15, "tea": 2}], ["Matvei's breakfast", {"apple": 50, "orange": 100, "banana": 100, "raspberry": 50, "strawberry": 50, "almond": 20, "honey": 10, "milk": 200, "cereal": 200, "cookies": 50, "cocoa": 10}]];
+const ALT={"apple": ["banana", "grapes", "orange"], "pear": ["banana", "grapes", "mandarin"], "kiwi": ["orange", "mandarin", "grapefruit"], "blueberry": ["grapes", "orange", "raisins"], "raspberry": ["orange", "grapes", "raisins"], "blackberry": ["grapes", "orange", "raisins"], "cherries": ["grapes", "mandarin", "banana"], "apricot": ["orange", "banana", "mandarin"], "peach": ["orange", "banana", "pineapple"], "plum": ["grapes", "mandarin", "banana"], "mango": ["pineapple", "papaya", "orange"], "watermelon": ["grapes", "pineapple", "orange"], "melon": ["pineapple", "papaya", "orange"], "passion fruit": ["pineapple", "orange", "papaya"], "cranberry (dried)": ["raisins", "dates", "orange"], "prunes": ["raisins", "dates", "banana"], "cucumber": ["tomato", "lettuce", "celery"], "avocado": ["olives", "chickpeas", "peanut butter"], "zucchini": ["sweet pepper", "carrot", "broccoli"], "pumpkin": ["carrot", "sweet pepper"], "almond": ["walnuts", "hazelnuts", "pistachio"], "cashew": ["walnuts", "hazelnuts", "peanuts"], "brazil nut": ["walnuts", "hazelnuts", "pistachio"], "buckwheat": ["oats", "rice", "quinoa"], "honey": ["maple syrup", "dates", "strawberry jam"], "cocoa": ["carob powder", "tea", "milk"], "dark chocolate": ["carob powder", "raisins", "dates"], "apple juice": ["orange juice", "tea"]};
 
 const CL=[['None',0,'--c0'],['Little',.05,'--c1'],['Modest',.25,'--c2'],['Great',.65,'--c3'],['Essential',.95,'--c4'],['Bee product',1,'--c5']];
 const CAT={fruit:'Fruit',veg:'Vegetables',pulses:'Beans and soy',nuts:'Nuts and seeds',grain:'Bread and grains',dairy:'Dairy and eggs',meat:'Meat',fish:'Fish',oil:'Oils',sweet:'Sweet things',drink:'Drinks'};
-const foods=F.map(a=>({id:a[0],c:a[1],p:a[2],k:a[3]}));
+const foods=F.map(a=>({id:a[0],c:a[1],p:a[2],k:a[3],fib:a[4],fol:a[5],vc:a[6],sug:a[7],pro:a[8]}));
 const byId=Object.fromEntries(foods.map(f=>[f.id,f]));
-const col=i=>`var(${CL[i][2]})`,eur=v=>'€'+v.toFixed(2);
-const stepOf=f=>f.c==='drink'&&f.id!=='orange juice'&&f.id!=='apple juice'?5:(['oil','sweet'].includes(f.c)?10:25);
-let q={},cur=0,mode='w',filter='';
+const dep=f=>CL[f.k][1];
+const col=i=>`var(${CL[i][2]})`,eur=v=>(v<0?'−€':'€')+Math.abs(v).toFixed(2);
+const stepOf=f=>f.c==='drink'&&!f.id.includes('juice')?5:(['oil','sweet'].includes(f.c)?10:25);
+let q={},cur=-2,mode='w',filter='',strict=false,view='B';
 const $=s=>document.getElementById(s);
-const stats=b=>{let W=0,C=0,bw=0,bp=0;for(const[id,g]of Object.entries(b)){const f=byId[id];if(!f||!(g>0))continue;const d=CL[f.k][1],c=f.p*g/1000;W+=g;C+=c;bw+=g*d;bp+=c*d}return{W,C,w:W?bw/W:0,p:C?bp/C:0}};
+const eff=b=>strict?Object.fromEntries(Object.entries(b).filter(([id])=>byId[id]&&dep(byId[id])<=.5)):b;
+const stats=b=>{let W=0,C=0,bw=0,bp=0;for(const[id,g]of Object.entries(b)){const f=byId[id];if(!f||!(g>0))continue;const d=dep(f),c=f.p*g/1000;W+=g;C+=c;bw+=g*d;bp+=c*d}return{W,C,w:W?bw/W:0,p:C?bp/C:0}};
+const nut=b=>{const t={fib:0,fol:0,vc:0,sug:0,pro:0};for(const[id,g]of Object.entries(b)){const f=byId[id];if(!f||!(g>0))continue;for(const k in t)t[k]+=f[k]*g/100}return t};
 const WORLD=P.map(([n,b])=>({n,...stats(b)}));
+const GOALS=[['Fibre','fib','g',6.25,'min'],['Vitamin C','vc','mg',20,'min'],['Folate','fol','µg',50,'min'],['Protein','pro','g',12.5,'min'],['Sugars','sug','g',22.5,'max']];
+function alts(f){let out=(ALT[f.id]||[]).filter(id=>byId[id]&&dep(byId[id])<=.5);
+if(out.length<3){const v=x=>[x.fib/10,x.vc/50,x.fol/100,x.pro/10,x.sug/20];const a=v(f);
+const cand=foods.filter(x=>x.c===f.c&&dep(x)<=.25&&!out.includes(x.id)).map(x=>({id:x.id,d:v(x).reduce((s,y,i)=>s+(y-a[i])**2,0)})).sort((u,w)=>u.d-w.d);
+for(const c of cand){if(out.length>=3)break;out.push(c.id)}}return out.slice(0,3)}
 $('presets').innerHTML=P.map((p,i)=>`<button class="pre" data-i="${i}" aria-pressed="false">${p[0]}</button>`).join('')+`<button class="pre" data-i="-2" aria-pressed="false">Empty plate</button>`;
 $('presets').addEventListener('click',e=>{const b=e.target.closest('.pre');if(!b)return;const i=+b.dataset.i;cur=i;q=i>=0?Object.assign({},P[i][1]):{};renderFoods();update()});
 function renderFoods(){let html='';const groups={};for(const f of foods){if(filter&&!f.id.includes(filter))continue;(groups[f.c]=groups[f.c]||[]).push(f)}
 for(const[c,list]of Object.entries(groups)){const used=list.some(f=>q[f.id]>0);
-html+=`<details ${filter||used?'open':''}><summary>${CAT[c]} (${list.length})</summary>`+list.map(f=>`<div class="food"><span class="dot" style="background:${col(f.k)}"></span><div class="nm2">${f.id}<small>${CL[f.k][0]} · ${Math.round(CL[f.k][1]*100)}% · €${f.p.toFixed(2)}/kg</small></div><div class="ctl"><button class="step" data-id="${f.id}" data-d="-1" aria-label="Less ${f.id}">−</button><input data-id="${f.id}" inputmode="numeric" aria-label="${f.id} grams" value="${q[f.id]||0}"><button class="step" data-id="${f.id}" data-d="1" aria-label="More ${f.id}">+</button></div></div>`).join('')+'</details>'}
+html+=`<details ${filter||used?'open':''}><summary>${CAT[c]} (${list.length})</summary>`+list.map(f=>`<div class="food"><span class="dot" style="background:${col(f.k)}"></span><div class="nm2">${f.id}<small>${CL[f.k][0]} · ${Math.round(dep(f)*100)}% · €${f.p.toFixed(2)}/kg</small></div><div class="ctl"><button class="step" data-id="${f.id}" data-d="-1" aria-label="Less ${f.id}">−</button><input data-id="${f.id}" inputmode="numeric" aria-label="${f.id} grams" value="${q[f.id]||0}"><button class="step" data-id="${f.id}" data-d="1" aria-label="More ${f.id}">+</button></div></div>`).join('')+'</details>'}
 $('foods').innerHTML=html||'<p class="note">No food matches that search.</p>'}
 $('foods').addEventListener('click',e=>{const b=e.target.closest('.step');if(!b)return;const f=byId[b.dataset.id];q[f.id]=Math.max(0,(q[f.id]||0)+stepOf(f)*(+b.dataset.d));b.parentNode.querySelector('input').value=q[f.id];cur=-1;update()});
 $('foods').addEventListener('input',e=>{const t=e.target;if(t.tagName!=='INPUT')return;q[t.dataset.id]=Math.max(0,parseFloat(t.value)||0);cur=-1;update()});
 $('q').addEventListener('input',e=>{filter=e.target.value.trim().toLowerCase();renderFoods()});
 $('tW').addEventListener('click',()=>{mode='w';update()});$('tP').addEventListener('click',()=>{mode='p';update()});
+$('strict').addEventListener('click',()=>{strict=!strict;update()});
+$('vB').addEventListener('click',()=>{view='B';update()});$('vH').addEventListener('click',()=>{view='H';update()});
+$('swaps').addEventListener('click',e=>{const b=e.target.closest('.alt');if(!b)return;const from=b.dataset.from,to=b.dataset.to,g=q[from]||0;q[to]=(q[to]||0)+g;delete q[from];cur=-1;renderFoods();update()});
 $('legend').innerHTML=CL.map((c,i)=>`<span><i class="dot" style="background:${col(i)}"></i>${c[0]} ${Math.round(c[1]*100)}%</span>`).join('');
+function healthHTML(t){let met=0;const rows=GOALS.map(([n,k,u,g,kind])=>{const v=t[k],ok=kind==='min'?v>=g:v<=g;if(ok)met++;const pct=Math.min(100,v/(2*g)*100);
+return `<div class="hb2"><div class="t"><span>${n} <span class="${ok?'ok':'no'}">${ok?'✓ goal met':(kind==='min'?'below goal':'too much')}</span></span><b>${v.toFixed(k==='fol'?0:1)} ${u} · goal ${kind==='min'?'at least':'at most'} ${g} ${u}</b></div><div class="track"><div class="fill ${ok?'':'bad'}" style="width:${pct}%"></div><div class="goal"></div></div></div>`}).join('');return{met,rows}}
 function update(){
 document.querySelectorAll('.pre').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.i===cur));
 $('tW').setAttribute('aria-pressed',mode==='w');$('tP').setAttribute('aria-pressed',mode==='p');
-const s=stats(q);
+$('strict').setAttribute('aria-pressed',strict);$('vB').setAttribute('aria-pressed',view==='B');$('vH').setAttribute('aria-pressed',view==='H');
+$('viewB').classList.toggle('hidden',view!=='B');$('viewH').classList.toggle('hidden',view!=='H');
+const e=eff(q),s=stats(e);
+// swaps
+const removed=strict?Object.entries(q).filter(([id,g])=>g>0&&byId[id]&&dep(byId[id])>.5):[];
+$('swaps').classList.toggle('hidden',!strict);
+$('swaps').innerHTML=!strict?'':(removed.length?`<h2>Swap ideas</h2><p class="note" style="margin:0 0 6px">These foods are off the plate. Tap a swap to put a bee-light food in their place, gram for gram.</p>`+removed.map(([id,g])=>{const f=byId[id];return `<div class="swap"><div class="h"><span style="text-transform:capitalize">${f.id} · ${g} g</span><span class="no">${Math.round(dep(f)*100)}% needs pollinators</span></div><div class="alts">${alts(f).map(a=>{const x=byId[a],dc=(x.p-f.p)*g/1000;return `<button class="alt" data-from="${f.id}" data-to="${a}">${a} · ${Math.round(dep(x)*100)}% · ${dc>=0?'+':''}${eur(dc)}</button>`}).join('')}</div></div>`}).join(''):'<h2>Swap ideas</h2><p class="note" style="margin:0">Nothing on this plate needs pollinators more than 50%.</p>');
 $('share').textContent=Math.round(s.w*100)+'%';$('kW').textContent=(s.w*100).toFixed(1)+'%';$('kP').textContent=(s.p*100).toFixed(1)+'%';$('kC').textContent=eur(s.C);
-const items=Object.entries(q).filter(([id,g])=>g>0&&byId[id]).map(([id,g])=>({f:byId[id],g,cost:byId[id].p*g/1000}));
+const items=Object.entries(e).filter(([id,g])=>g>0&&byId[id]).map(([id,g])=>({f:byId[id],g,cost:byId[id].p*g/1000}));
 let a=-Math.PI/2,svg='<circle cx="100" cy="100" r="96" fill="#F4F1E6"/><circle cx="100" cy="100" r="80" fill="none" stroke="#E2DCC8" stroke-width="2"/>';const R=70,r=48;
 if(!s.W)svg+='<circle cx="100" cy="100" r="59" fill="none" stroke="#E2DCC8" stroke-width="22"/>';
-for(const x of items.sort((u,v)=>v.f.k-u.f.k)){const da=x.g/s.W*2*Math.PI;if(da>=2*Math.PI-1e-6){svg+=`<circle cx="100" cy="100" r="59" fill="none" stroke="${col(x.f.k)}" stroke-width="22"/>`;continue}
+for(const x of items.slice().sort((u,v)=>v.f.k-u.f.k)){const da=x.g/s.W*2*Math.PI;if(da>=2*Math.PI-1e-6){svg+=`<circle cx="100" cy="100" r="59" fill="none" stroke="${col(x.f.k)}" stroke-width="22"/>`;continue}
 const p=(rr,t)=>[100+rr*Math.cos(t),100+rr*Math.sin(t)],L=da>Math.PI?1:0,[x1,y1]=p(R,a),[x2,y2]=p(R,a+da),[x3,y3]=p(r,a+da),[x4,y4]=p(r,a);
 svg+=`<path d="M${x1} ${y1}A${R} ${R} 0 ${L} 1 ${x2} ${y2}L${x3} ${y3}A${r} ${r} 0 ${L} 0 ${x4} ${y4}Z" fill="${col(x.f.k)}" stroke="#F4F1E6" stroke-width="1"/>`;a+=da}
 $('ring').innerHTML=svg;
-// ranking
-const me=cur>=0?null:{n:'Your breakfast',...s,me:true};
-let rows=WORLD.map((x,i)=>({...x,me:i===cur}));if(me&&s.W)rows.push(me);
+const showMe=(cur<0||strict)&&s.W>0;
+let rows=WORLD.map((x,i)=>({...x,me:!showMe&&i===cur}));if(showMe)rows.push({n:strict?'Your plate, no bee foods':'Your breakfast',...s,me:true});
 rows.sort((u,v)=>v[mode]-u[mode]);const mx=Math.max(.01,...rows.map(x=>x[mode]));
 $('rank').innerHTML=rows.map(x=>`<div class="rk ${x.me?'me':''}"><span class="nm">${x.n}</span><div class="tr"><div class="fl" style="width:${x[mode]/mx*100}%"></div></div><span class="v">${Math.round(x[mode]*100)}%</span></div>`).join('');
 const pos=rows.findIndex(x=>x.me)+1;
 $('rankline').textContent=pos?`${rows[pos-1].n}: #${pos} of ${rows.length} ${mode==='w'?'by weight':'by bill'}`:'Add foods to see where your breakfast ranks.';
 $('list').innerHTML=items.length?items.sort((u,v)=>v.f.k-u.f.k||v.g-u.g).map(x=>`<div><span><i class="dot" style="background:${col(x.f.k)};margin-right:6px"></i>${x.f.id} · ${x.g} g</span><b>${eur(x.cost)}</b></div>`).join(''):'<p class="note">The plate is empty. Pick a breakfast above or add foods.</p>';
+// health
+const h=healthHTML(nut(e));let extra='';
+if(strict&&removed.length){const h0=healthHTML(nut(q));extra=`<p class="note" style="margin-top:0">Before removing bee foods: ${h0.met} of 5 goals.</p>`}
+$('hScore').textContent=s.W?`${h.met} of 5 healthy goals`:'Add foods to check your breakfast';
+$('hBars').innerHTML=extra+h.rows;
 }
-cur=-2;q={};renderFoods();update();
+renderFoods();update();
 }
+
 </script>
 </body>
 </html>
