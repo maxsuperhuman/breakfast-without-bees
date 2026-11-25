@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Breakfast without bees</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: playful science-fair tool for an audience on their phones
+   IDEA: a breakfast plate you fill, which tells you how much of it the bees made
+   PICTURE: the plate as a ring chart coloured by pollinator dependence, then your place among world breakfasts
+   COLOUR and TYPE: honey yellow, leaf green, deep forest ground; Fredoka + Nunito Sans
+   LAYOUT: plate and result first, ranking, then the food picker; one column on phones */
+:root{color-scheme:light dark;
+--bg:light-dark(#FFFDF6,#111A15);--panel:light-dark(#FFFFFF,#18241D);--ink:light-dark(#1B2A21,#EEF3EC);--mut:light-dark(#5E6E64,#A9B8AE);
+--line:light-dark(#E6E1D2,#2B3A31);--honey:#F5B700;--forest:light-dark(#1B3A2F,#0B1611);--chip:light-dark(#F4EFE1,#22312A);
+--c0:#3E8E5A;--c1:#9BC53D;--c2:#F5B700;--c3:#EF8A33;--c4:#C8341E;--c5:#7A3E9D}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 'Nunito Sans',system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:'Fredoka',system-ui,sans-serif}
+.wrap{max-width:1240px;margin:0 auto;padding:0 max(4vw,14px)}
+header{padding-top:24px}
+h1{font-size:clamp(28px,4.4vw,46px);line-height:1.05;margin:0 0 6px;text-wrap:balance}
+header p{margin:0;color:var(--mut);max-width:68ch}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+button{font:inherit;cursor:pointer;color:inherit}
+.pre{border:2px solid var(--line);background:var(--panel);border-radius:999px;padding:8px 14px;min-height:44px;font-weight:700}
+.pre[aria-pressed=true]{background:var(--honey);border-color:var(--honey);color:#1B2A21}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--c3);outline-offset:2px}
+main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;padding-bottom:40px}
+.plate{background:var(--forest);color:#F4F1E6;border-radius:24px;padding:20px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:center}
+.fig{position:relative;aspect-ratio:1;max-width:300px;width:100%;margin:0 auto}
+.fig svg{position:absolute;inset:0;width:100%;height:100%}
+.ctr{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#1B2A21}
+.ctr b{font-family:'Fredoka';font-size:clamp(38px,7vw,56px);line-height:1}
+.ctr span{font-size:13px;font-weight:700;max-width:12ch}
+.kp{display:flex;flex-direction:column;gap:10px}
+.kp .lab{font-size:14px;color:#C9D6CC}
+.kp .val{font-family:'Fredoka';font-size:30px;line-height:1.1;white-space:nowrap}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px;margin-top:18px}
+.card h2{margin:0 0 6px;font-size:22px}
+.tabs{display:flex;gap:6px;margin:8px 0 12px}
+.tab{border:1px solid var(--line);background:var(--chip);border-radius:10px;padding:6px 12px;min-height:40px;font-weight:700}
+.tab[aria-pressed=true]{background:var(--ink);color:var(--bg)}
+.rk{display:grid;grid-template-columns:9.5em minmax(0,1fr) 3.4em;gap:8px;align-items:center;font-size:15px;padding:3px 0}
+.rk .tr{height:14px;background:var(--chip);border-radius:7px;overflow:hidden}
+.rk .fl{height:100%;background:var(--c0);border-radius:7px}
+.rk.me{font-weight:800}.rk.me .fl{background:var(--c3)}.rk.me .nm{color:var(--c3)}
+.rk .v{text-align:right;white-space:nowrap}
+.rankline{font-family:'Fredoka';font-size:20px;margin:4px 0 0}
+.pick{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:18px}
+.pick h2{font-size:22px;margin:0}
+.search{width:100%;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);padding:0 12px;font-size:16px;margin:10px 0}
+details{border-top:1px solid var(--line)}
+summary{font-weight:700;padding:10px 0;cursor:pointer;min-height:44px;display:flex;align-items:center}
+.food{display:grid;grid-template-columns:14px minmax(0,1fr) auto;align-items:center;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block}
+.nm2{font-weight:700;text-transform:capitalize}.nm2 small{display:block;font-weight:400;color:var(--mut);font-size:13px;text-transform:none}
+.ctl{display:flex;align-items:center;gap:4px}
+.step{width:44px;height:44px;border-radius:12px;border:1px solid var(--line);background:var(--chip);font-size:22px;font-weight:700}
+.ctl input{width:60px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);text-align:right;padding:0 8px;font-size:16px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px;color:var(--mut);margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.list{font-size:15px}.list div{display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.note{font-size:13px;color:var(--mut);margin-top:10px}
+@media(max-width:860px){main{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:560px){.plate{grid-template-columns:minmax(0,1fr)}.kp{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}.kp .val{font-size:22px}.rk{grid-template-columns:7.5em minmax(0,1fr) 3.2em;font-size:14px}}
+</style>
+</head>
+<body>
+<header class="wrap">
+<h1>How much of your breakfast did the bees make?</h1>
+<p>Start from a country’s breakfast or build your own. See how much of it needs pollinators, by weight and by price, and where you rank against the world.</p>
+<div class="presets" id="presets"></div>
+</header>
+<main class="wrap">
+<section>
+<div class="plate">
+<div class="fig"><svg id="ring" viewBox="0 0 200 200" role="img" aria-label="Plate chart coloured by pollinator dependence"></svg><div class="ctr"><b id="share">0%</b><span>of the weight comes from pollinators</span></div></div>
+<div class="kp">
+<div><div class="lab">Bee share by weight</div><div class="val" id="kW">0%</div></div>
+<div><div class="lab">Bee share of the bill</div><div class="val" id="kP">0%</div></div>
+<div><div class="lab">Price</div><div class="val" id="kC">€0.00</div></div>
+</div>
+</div>
+<div class="card">
+<h2>You vs the world</h2>
+<p class="rankline" id="rankline"></p>
+<div class="tabs"><button class="tab" id="tW" aria-pressed="true">By weight</button><button class="tab" id="tP" aria-pressed="false">By bill</button></div>
+<div id="rank"></div>
+</div>
+<div class="card">
+<h2>Who made it?</h2>
+<div class="legend" id="legend"></div>
+<div class="list" id="list" style="margin-top:10px"></div>
+</div>
+</section>
+<section class="pick" aria-label="Foods">
+<h2>Foods (grams)</h2>
+<input class="search" id="q" type="search" placeholder="Search 113 foods" aria-label="Search foods">
+<div id="foods"></div>
+<p class="note">Research by Matvei Medvedev, Limassol. Pollinator dependence: classes from Klein et al. (2007), how much harvest is lost without pollinators: essential 95%, great 65%, modest 25%, little 5%, none 0%; honey counts as 100%. Prices: estimated Cyprus prices per kilo. Drinks count by their dry ingredient (coffee, tea).</p>
+</section>
+</main>
+<script>
+{
+const F=[["apple", "fruit", 4.45, 3], ["pear", "fruit", 4.25, 3], ["orange", "fruit", 3.15, 1], ["banana", "fruit", 2.15, 0], ["kiwi", "fruit", 11.5, 4], ["zucchini", "veg", 2.95, 4], ["avocado", "veg", 2.95, 3], ["tomato", "veg", 3.95, 1], ["cucumber", "veg", 3.25, 3], ["watermelon", "fruit", 0.85, 4], ["melon", "fruit", 2.99, 4], ["blueberry", "fruit", 30, 3], ["raspberry", "fruit", 55.7, 3], ["strawberry", "fruit", 20, 2], ["almond", "nuts", 36, 3], ["honey", "sweet", 13.3, 5], ["butter", "dairy", 15.4, 0], ["milk", "dairy", 2.5, 0], ["yogurt", "dairy", 9.5, 0], ["bread", "grain", 6, 0], ["cereal", "grain", 7, 0], ["cookies", "grain", 20, 0], ["cocoa", "drink", 21.9, 4], ["lemon", "fruit", 2.5, 1], ["grapefruit", "fruit", 2.0, 1], ["mandarin", "fruit", 2.5, 1], ["lime", "fruit", 4, 1], ["grapes", "fruit", 4, 0], ["cherries", "fruit", 12, 3], ["apricot", "fruit", 5, 3], ["peach", "fruit", 4, 3], ["plum", "fruit", 4, 3], ["mango", "fruit", 6, 3], ["pineapple", "fruit", 3, 0], ["pomegranate", "fruit", 4, 2], ["fig", "fruit", 8, 2], ["dates", "fruit", 10, 0], ["papaya", "fruit", 5, 1], ["passion fruit", "fruit", 15, 4], ["coconut", "fruit", 3, 2], ["blackberry", "fruit", 30, 3], ["cranberry (dried)", "fruit", 15, 3], ["raisins", "fruit", 8, 0], ["prunes", "fruit", 10, 3], ["potato", "veg", 1.2, 0], ["onion", "veg", 1.5, 0], ["garlic", "veg", 8, 0], ["carrot", "veg", 1.5, 0], ["lettuce", "veg", 5, 0], ["spinach", "veg", 8, 0], ["cabbage", "veg", 1.5, 0], ["broccoli", "veg", 4, 0], ["cauliflower", "veg", 3, 0], ["sweet pepper", "veg", 4, 1], ["chili", "veg", 10, 1], ["eggplant", "veg", 3, 2], ["pumpkin", "veg", 2, 4], ["mushrooms", "veg", 6, 0], ["green beans", "veg", 5, 1], ["peas", "veg", 3, 1], ["sweetcorn", "veg", 4, 0], ["olives", "veg", 8, 0], ["celery", "veg", 3, 0], ["beetroot", "veg", 3, 0], ["chickpeas", "pulses", 3, 0], ["lentils", "pulses", 3, 0], ["dry beans", "pulses", 3, 1], ["baked beans", "pulses", 3, 1], ["soy (tofu, natto, miso)", "pulses", 8, 2], ["peanuts", "nuts", 6, 1], ["peanut butter", "nuts", 10, 1], ["walnuts", "nuts", 15, 0], ["hazelnuts", "nuts", 18, 0], ["pistachio", "nuts", 30, 0], ["cashew", "nuts", 25, 3], ["brazil nut", "nuts", 25, 4], ["tahini (sesame)", "nuts", 8, 2], ["sunflower seeds", "nuts", 6, 2], ["buckwheat", "grain", 4, 3], ["flour", "grain", 1.2, 0], ["croissant", "grain", 12, 0], ["pasta", "grain", 2.5, 0], ["rice", "grain", 2.5, 0], ["oats", "grain", 3, 0], ["tortilla (corn)", "grain", 6, 0], ["quinoa", "grain", 8, 0], ["pancakes", "grain", 5, 0], ["noodles", "grain", 4, 0], ["cheese (cheddar)", "dairy", 12, 0], ["halloumi", "dairy", 12, 0], ["feta", "dairy", 10, 0], ["cottage cheese", "dairy", 8, 0], ["sour cream", "dairy", 6, 0], ["eggs", "dairy", 6, 0], ["bacon", "meat", 15, 0], ["sausage", "meat", 10, 0], ["ham", "meat", 15, 0], ["chicken", "meat", 7, 0], ["beef", "meat", 15, 0], ["salmon", "fish", 20, 0], ["tuna (canned)", "fish", 12, 0], ["sardines", "fish", 8, 0], ["olive oil", "oil", 9, 0], ["sunflower oil", "oil", 3, 2], ["sugar", "sweet", 1.3, 0], ["maple syrup", "sweet", 25, 0], ["strawberry jam", "sweet", 8, 2], ["dark chocolate", "sweet", 15, 3], ["coffee", "drink", 20, 2], ["tea", "drink", 30, 0], ["orange juice", "drink", 2.5, 1], ["apple juice", "drink", 2, 3], ["carob powder", "drink", 10, 2]];
+const P=[["Cyprus", {"halloumi": 80, "bread": 80, "tomato": 100, "cucumber": 100, "olives": 40, "eggs": 50, "watermelon": 200, "coffee": 7}], ["Turkey", {"bread": 80, "feta": 60, "olives": 40, "tomato": 80, "cucumber": 80, "eggs": 50, "honey": 20, "butter": 10, "tea": 3}], ["Full English (UK)", {"eggs": 100, "bacon": 60, "sausage": 100, "baked beans": 135, "bread": 60, "mushrooms": 50, "tomato": 80, "butter": 10, "tea": 2}], ["France", {"croissant": 60, "bread": 80, "butter": 15, "strawberry jam": 30, "orange juice": 200, "coffee": 10}], ["Italy", {"croissant": 70, "coffee": 8, "milk": 150, "orange juice": 150}], ["USA", {"pancakes": 150, "maple syrup": 40, "blueberry": 75, "bacon": 40, "orange juice": 200, "coffee": 10}], ["Mexico", {"eggs": 100, "tortilla (corn)": 60, "dry beans": 100, "tomato": 60, "chili": 10, "avocado": 50, "coffee": 8}], ["Japan", {"rice": 150, "soy (tofu, natto, miso)": 60, "salmon": 80, "tea": 2}], ["India", {"flour": 100, "butter": 15, "yogurt": 100, "potato": 80, "tea": 2, "milk": 100, "sugar": 10}], ["Russia", {"buckwheat": 60, "milk": 200, "butter": 10, "cottage cheese": 100, "honey": 15, "tea": 2}], ["Matvei's breakfast", {"apple": 50, "orange": 100, "banana": 100, "raspberry": 50, "strawberry": 50, "almond": 20, "honey": 10, "milk": 200, "cereal": 200, "cookies": 50, "cocoa": 10}]];
+
+const CL=[['None',0,'--c0'],['Little',.05,'--c1'],['Modest',.25,'--c2'],['Great',.65,'--c3'],['Essential',.95,'--c4'],['Bee product',1,'--c5']];
+const CAT={fruit:'Fruit',veg:'Vegetables',pulses:'Beans and soy',nuts:'Nuts and seeds',grain:'Bread and grains',dairy:'Dairy and eggs',meat:'Meat',fish:'Fish',oil:'Oils',sweet:'Sweet things',drink:'Drinks'};
+const foods=F.map(a=>({id:a[0],c:a[1],p:a[2],k:a[3]}));
+const byId=Object.fromEntries(foods.map(f=>[f.id,f]));
+const col=i=>`var(${CL[i][2]})`,eur=v=>'€'+v.toFixed(2);
+const stepOf=f=>f.c==='drink'&&f.id!=='orange juice'&&f.id!=='apple juice'?5:(['oil','sweet'].includes(f.c)?10:25);
+let q={},cur=0,mode='w',filter='';
+const $=s=>document.getElementById(s);
+const stats=b=>{let W=0,C=0,bw=0,bp=0;for(const[id,g]of Object.entries(b)){const f=byId[id];if(!f||!(g>0))continue;const d=CL[f.k][1],c=f.p*g/1000;W+=g;C+=c;bw+=g*d;bp+=c*d}return{W,C,w:W?bw/W:0,p:C?bp/C:0}};
+const WORLD=P.map(([n,b])=>({n,...stats(b)}));
+$('presets').innerHTML=P.map((p,i)=>`<button class="pre" data-i="${i}" aria-pressed="false">${p[0]}</button>`).join('')+`<button class="pre" data-i="-2" aria-pressed="false">Empty plate</button>`;
+$('presets').addEventListener('click',e=>{const b=e.target.closest('.pre');if(!b)return;const i=+b.dataset.i;cur=i;q=i>=0?Object.assign({},P[i][1]):{};renderFoods();update()});
+function renderFoods(){let html='';const groups={};for(const f of foods){if(filter&&!f.id.includes(filter))continue;(groups[f.c]=groups[f.c]||[]).push(f)}
+for(const[c,list]of Object.entries(groups)){const used=list.some(f=>q[f.id]>0);
+html+=`<details ${filter||used?'open':''}><summary>${CAT[c]} (${list.length})</summary>`+list.map(f=>`<div class="food"><span class="dot" style="background:${col(f.k)}"></span><div class="nm2">${f.id}<small>${CL[f.k][0]} · ${Math.round(CL[f.k][1]*100)}% · €${f.p.toFixed(2)}/kg</small></div><div class="ctl"><button class="step" data-id="${f.id}" data-d="-1" aria-label="Less ${f.id}">−</button><input data-id="${f.id}" inputmode="numeric" aria-label="${f.id} grams" value="${q[f.id]||0}"><button class="step" data-id="${f.id}" data-d="1" aria-label="More ${f.id}">+</button></div></div>`).join('')+'</details>'}
+$('foods').innerHTML=html||'<p class="note">No food matches that search.</p>'}
+$('foods').addEventListener('click',e=>{const b=e.target.closest('.step');if(!b)return;const f=byId[b.dataset.id];q[f.id]=Math.max(0,(q[f.id]||0)+stepOf(f)*(+b.dataset.d));b.parentNode.querySelector('input').value=q[f.id];cur=-1;update()});
+$('foods').addEventListener('input',e=>{const t=e.target;if(t.tagName!=='INPUT')return;q[t.dataset.id]=Math.max(0,parseFloat(t.value)||0);cur=-1;update()});
+$('q').addEventListener('input',e=>{filter=e.target.value.trim().toLowerCase();renderFoods()});
+$('tW').addEventListener('click',()=>{mode='w';update()});$('tP').addEventListener('click',()=>{mode='p';update()});
+$('legend').innerHTML=CL.map((c,i)=>`<span><i class="dot" style="background:${col(i)}"></i>${c[0]} ${Math.round(c[1]*100)}%</span>`).join('');
+function update(){
+document.querySelectorAll('.pre').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.i===cur));
+$('tW').setAttribute('aria-pressed',mode==='w');$('tP').setAttribute('aria-pressed',mode==='p');
+const s=stats(q);
+$('share').textContent=Math.round(s.w*100)+'%';$('kW').textContent=(s.w*100).toFixed(1)+'%';$('kP').textContent=(s.p*100).toFixed(1)+'%';$('kC').textContent=eur(s.C);
+const items=Object.entries(q).filter(([id,g])=>g>0&&byId[id]).map(([id,g])=>({f:byId[id],g,cost:byId[id].p*g/1000}));
+let a=-Math.PI/2,svg='<circle cx="100" cy="100" r="96" fill="#F4F1E6"/><circle cx="100" cy="100" r="80" fill="none" stroke="#E2DCC8" stroke-width="2"/>';const R=70,r=48;
+if(!s.W)svg+='<circle cx="100" cy="100" r="59" fill="none" stroke="#E2DCC8" stroke-width="22"/>';
+for(const x of items.sort((u,v)=>v.f.k-u.f.k)){const da=x.g/s.W*2*Math.PI;if(da>=2*Math.PI-1e-6){svg+=`<circle cx="100" cy="100" r="59" fill="none" stroke="${col(x.f.k)}" stroke-width="22"/>`;continue}
+const p=(rr,t)=>[100+rr*Math.cos(t),100+rr*Math.sin(t)],L=da>Math.PI?1:0,[x1,y1]=p(R,a),[x2,y2]=p(R,a+da),[x3,y3]=p(r,a+da),[x4,y4]=p(r,a);
+svg+=`<path d="M${x1} ${y1}A${R} ${R} 0 ${L} 1 ${x2} ${y2}L${x3} ${y3}A${r} ${r} 0 ${L} 0 ${x4} ${y4}Z" fill="${col(x.f.k)}" stroke="#F4F1E6" stroke-width="1"/>`;a+=da}
+$('ring').innerHTML=svg;
+// ranking
+const me=cur>=0?null:{n:'Your breakfast',...s,me:true};
+let rows=WORLD.map((x,i)=>({...x,me:i===cur}));if(me&&s.W)rows.push(me);
+rows.sort((u,v)=>v[mode]-u[mode]);const mx=Math.max(.01,...rows.map(x=>x[mode]));
+$('rank').innerHTML=rows.map(x=>`<div class="rk ${x.me?'me':''}"><span class="nm">${x.n}</span><div class="tr"><div class="fl" style="width:${x[mode]/mx*100}%"></div></div><span class="v">${Math.round(x[mode]*100)}%</span></div>`).join('');
+const pos=rows.findIndex(x=>x.me)+1;
+$('rankline').textContent=pos?`${rows[pos-1].n}: #${pos} of ${rows.length} ${mode==='w'?'by weight':'by bill'}`:'Add foods to see where your breakfast ranks.';
+$('list').innerHTML=items.length?items.sort((u,v)=>v.f.k-u.f.k||v.g-u.g).map(x=>`<div><span><i class="dot" style="background:${col(x.f.k)};margin-right:6px"></i>${x.f.id} · ${x.g} g</span><b>${eur(x.cost)}</b></div>`).join(''):'<p class="note">The plate is empty. Pick a breakfast above or add foods.</p>';
+}
+cur=-2;q={};renderFoods();update();
+}
+</script>
+</body>
+</html>
